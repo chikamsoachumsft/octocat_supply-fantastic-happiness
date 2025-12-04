@@ -172,6 +172,12 @@ const router = express.Router();
 router.get('/:sessionId', async (req, res, next) => {
   try {
     const { sessionId } = req.params;
+    
+    // Validate sessionId
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 255) {
+      throw new ValidationError('Invalid sessionId');
+    }
+    
     const repo = await getCartRepository();
 
     // Get existing cart or create new one
@@ -198,6 +204,11 @@ router.post('/:sessionId/items', async (req, res, next) => {
     const { sessionId } = req.params;
     const { productId, quantity } = req.body;
 
+    // Validate sessionId
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 255) {
+      throw new ValidationError('Invalid sessionId');
+    }
+
     // Validate input
     if (!productId || !quantity) {
       throw new ValidationError('productId and quantity are required');
@@ -207,8 +218,11 @@ router.post('/:sessionId/items', async (req, res, next) => {
       throw new ValidationError('productId and quantity must be numbers');
     }
 
-    if (quantity < 1) {
-      throw new ValidationError('quantity must be at least 1');
+    if (!Number.isInteger(productId) || productId <= 0) {
+      throw new ValidationError('productId must be a positive integer');
+    }
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new ValidationError('quantity must be a positive integer');
     }
 
     const repo = await getCartRepository();
@@ -237,6 +251,11 @@ router.put('/:sessionId/items/:cartItemId', async (req, res, next) => {
     const { sessionId, cartItemId } = req.params;
     const { quantity } = req.body;
 
+    // Validate sessionId
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 255) {
+      throw new ValidationError('Invalid sessionId');
+    }
+
     // Validate input
     if (!quantity) {
       throw new ValidationError('quantity is required');
@@ -246,8 +265,8 @@ router.put('/:sessionId/items/:cartItemId', async (req, res, next) => {
       throw new ValidationError('quantity must be a number');
     }
 
-    if (quantity < 1) {
-      throw new ValidationError('quantity must be at least 1');
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new ValidationError('quantity must be a positive integer');
     }
 
     const repo = await getCartRepository();
@@ -274,6 +293,12 @@ router.put('/:sessionId/items/:cartItemId', async (req, res, next) => {
 router.delete('/:sessionId/items/:cartItemId', async (req, res, next) => {
   try {
     const { sessionId, cartItemId } = req.params;
+    
+    // Validate sessionId
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 255) {
+      throw new ValidationError('Invalid sessionId');
+    }
+    
     const repo = await getCartRepository();
 
     // Verify cart exists
@@ -298,6 +323,12 @@ router.delete('/:sessionId/items/:cartItemId', async (req, res, next) => {
 router.delete('/:sessionId', async (req, res, next) => {
   try {
     const { sessionId } = req.params;
+    
+    // Validate sessionId
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length > 255) {
+      throw new ValidationError('Invalid sessionId');
+    }
+    
     const repo = await getCartRepository();
 
     // Get cart
