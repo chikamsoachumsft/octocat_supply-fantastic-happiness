@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import axios from 'axios';
 import { api } from '../api/config';
+import { getItemPrice } from '../utils/priceUtils';
 
 interface Product {
   productId: number;
@@ -39,8 +40,8 @@ interface CartContextType {
   removeItem: (cartItemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
-  getTotalItems: () => number;
-  getTotalPrice: () => number;
+  totalItems: number;
+  totalPrice: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -50,7 +51,7 @@ const CART_SESSION_KEY = 'octocat_cart_session';
 const getSessionId = (): string => {
   let sessionId = localStorage.getItem(CART_SESSION_KEY);
   if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    sessionId = `session_${Date.now()}_${crypto.randomUUID()}`;
     localStorage.setItem(CART_SESSION_KEY, sessionId);
   }
   return sessionId;
@@ -78,22 +79,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const loadCart = async () => {
-      try {
-        setLoading(true);
-        const { data } = await axios.get(`${api.baseURL}/api/cart/${sessionId}`);
-        // API returns {cart, items}, transform to expected structure
-        setCart({
-          ...data.cart,
-          items: data.items || [],
-        });
-      } catch (error) {
-        console.error('Error fetching cart:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadCart();
+    refreshCart();
   }, [sessionId]);
 
   const addToCart = async (productId: number, quantity: number) => {
@@ -141,20 +127,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getTotalItems = (): number => {
+  const totalItems = useMemo(() => {
     if (!cart || !cart.items) return 0;
     return cart.items.reduce((total, item) => total + item.quantity, 0);
-  };
+  }, [cart]);
 
-  const getTotalPrice = (): number => {
+  const totalPrice = useMemo(() => {
     if (!cart || !cart.items) return 0;
     return cart.items.reduce((total, item) => {
-      const price = item.product.discount
-        ? item.product.price * (1 - item.product.discount)
-        : item.product.price;
+      const price = getItemPrice(item.product);
       return total + price * item.quantity;
     }, 0);
-  };
+  }, [cart]);
 
   return (
     <CartContext.Provider
@@ -166,8 +150,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeItem,
         clearCart,
         refreshCart,
-        getTotalItems,
-        getTotalPrice,
+        totalItems,
+        totalPrice,
       }}
     >
       {children}

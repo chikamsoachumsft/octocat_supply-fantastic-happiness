@@ -1,9 +1,10 @@
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { getItemPrice } from '../utils/priceUtils';
 
 export default function Cart() {
-  const { cart, loading, updateQuantity, removeItem, clearCart, getTotalPrice } = useCart();
+  const { cart, loading, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
   const { darkMode } = useTheme();
   const navigate = useNavigate();
 
@@ -42,8 +43,9 @@ export default function Cart() {
         className={`min-h-screen ${darkMode ? 'bg-dark' : 'bg-gray-100'} pt-20 px-4 transition-colors duration-300`}
       >
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+          <div className="flex justify-center items-center h-64" aria-live="polite" role="status">
+            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary" aria-label="Loading cart"></div>
+            <span className="sr-only">Loading cart...</span>
           </div>
         </div>
       </div>
@@ -109,9 +111,7 @@ export default function Cart() {
               <div className="grid gap-6">
                 {cart.items.map((item) => {
                   const hasDiscount = item.product.discount != null && item.product.discount > 0;
-                  const price = hasDiscount
-                    ? item.product.price * (1 - item.product.discount!)
-                    : item.product.price;
+                  const price = getItemPrice(item.product);
                   const subtotal = price * item.quantity;
 
                   return (
@@ -254,7 +254,7 @@ export default function Cart() {
                     <span
                       className={`${darkMode ? 'text-light' : 'text-gray-800'} font-semibold transition-colors duration-300`}
                     >
-                      ${getTotalPrice().toFixed(2)}
+                      ${totalPrice.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function Cart() {
                       Total
                     </span>
                     <span className="text-2xl font-bold text-primary">
-                      ${getTotalPrice().toFixed(2)}
+                      ${totalPrice.toFixed(2)}
                     </span>
                   </div>
                 </div>

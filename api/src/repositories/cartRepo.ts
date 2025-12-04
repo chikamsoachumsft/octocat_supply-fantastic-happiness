@@ -48,6 +48,9 @@ export class CartRepository {
       });
       
       const result = await this.db.run(sql, values);
+      if (!result || (typeof result.changes === 'number' && result.changes < 1)) {
+        throw new ValidationError('Failed to insert cart');
+      }
 
       const createdCart = await this.getCartBySessionId(sessionId);
       if (!createdCart) {
@@ -246,8 +249,12 @@ export async function createCartRepository(isTest: boolean = false): Promise<Car
 let cartRepo: CartRepository | null = null;
 
 export async function getCartRepository(isTest: boolean = false): Promise<CartRepository> {
+  const isTestEnv = isTest || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  if (isTestEnv) {
+    return await createCartRepository(true);
+  }
   if (!cartRepo) {
-    cartRepo = await createCartRepository(isTest);
+    cartRepo = await createCartRepository(false);
   }
   return cartRepo;
 }
