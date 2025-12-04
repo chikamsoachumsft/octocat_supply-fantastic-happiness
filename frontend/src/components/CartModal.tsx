@@ -10,7 +10,9 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
   const { cart, updateQuantity, removeItem, clearCart, getTotalPrice, isLoading } = useCart();
   const { darkMode } = useTheme();
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const totalPrice = getTotalPrice();
 

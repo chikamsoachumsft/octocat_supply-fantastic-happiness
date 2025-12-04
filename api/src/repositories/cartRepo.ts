@@ -4,15 +4,9 @@
 
 import { getDatabase, DatabaseConnection } from '../db/sqlite';
 import { Cart, CartItem, CartWithItems, CartItemWithProduct } from '../models/cart';
-import {
-  handleDatabaseError,
-  NotFoundError,
-  ValidationError,
-  ConflictError,
-} from '../utils/errors';
+import { handleDatabaseError, NotFoundError, ValidationError } from '../utils/errors';
 import {
   buildInsertSQL,
-  buildUpdateSQL,
   objectToCamelCase,
   mapDatabaseRows,
   DatabaseRow,
