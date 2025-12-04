@@ -1,0 +1,224 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Cart
+ *   description: API endpoints for managing shopping cart
+ */
+
+/**
+ * @swagger
+ * /api/cart:
+ *   get:
+ *     summary: Get the current user's cart with all items
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Cart with items
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CartWithItems'
+ *
+ * /api/cart/items:
+ *   post:
+ *     summary: Add an item to the cart
+ *     tags: [Cart]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - productId
+ *               - quantity
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               productId:
+ *                 type: integer
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *     responses:
+ *       201:
+ *         description: Item added to cart successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CartItem'
+ *
+ * /api/cart/items/{id}:
+ *   put:
+ *     summary: Update cart item quantity
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Cart item ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - quantity
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *     responses:
+ *       200:
+ *         description: Cart item updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CartItem'
+ *       404:
+ *         description: Cart item not found
+ *   delete:
+ *     summary: Remove an item from the cart
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Cart item ID
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       204:
+ *         description: Item removed successfully
+ *       404:
+ *         description: Cart item not found
+ *
+ * /api/cart/clear:
+ *   delete:
+ *     summary: Clear all items from the cart
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       204:
+ *         description: Cart cleared successfully
+ */
+
+import express from 'express';
+import { getCartRepository } from '../repositories/cartRepo';
+
+const router = express.Router();
+
+// Get cart with items
+router.get('/', async (req, res, next) => {
+  try {
+    const userId = req.query.userId as string;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const cartRepo = await getCartRepository();
+    const cart = await cartRepo.getCartWithItems(userId);
+    res.json(cart);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Add item to cart
+router.post('/items', async (req, res, next) => {
+  try {
+    const { userId, productId, quantity } = req.body;
+
+    if (!userId || !productId || !quantity) {
+      return res.status(400).json({ error: 'userId, productId, and quantity are required' });
+    }
+
+    const cartRepo = await getCartRepository();
+    const cartItem = await cartRepo.addItem(userId, productId, quantity);
+    res.status(201).json(cartItem);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update cart item quantity
+router.put('/items/:id', async (req, res, next) => {
+  try {
+    const cartItemId = parseInt(req.params.id);
+    const { userId, quantity } = req.body;
+
+    if (!userId || !quantity) {
+      return res.status(400).json({ error: 'userId and quantity are required' });
+    }
+
+    const cartRepo = await getCartRepository();
+    const cartItem = await cartRepo.updateItemQuantity(userId, cartItemId, quantity);
+    res.json(cartItem);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Remove item from cart
+router.delete('/items/:id', async (req, res, next) => {
+  try {
+    const cartItemId = parseInt(req.params.id);
+    const userId = req.query.userId as string;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const cartRepo = await getCartRepository();
+    await cartRepo.removeItem(userId, cartItemId);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Clear cart
+router.delete('/clear', async (req, res, next) => {
+  try {
+    const userId = req.query.userId as string;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const cartRepo = await getCartRepository();
+    await cartRepo.clearCart(userId);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+export default router;
