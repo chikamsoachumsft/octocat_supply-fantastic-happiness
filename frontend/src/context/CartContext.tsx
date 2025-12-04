@@ -65,7 +65,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const { data } = await axios.get(`${api.baseURL}/api/cart/${sessionId}`);
-      setCart(data);
+      // API returns {cart, items}, transform to expected structure
+      setCart({
+        ...data.cart,
+        items: data.items || [],
+      });
     } catch (error) {
       console.error('Error fetching cart:', error);
     } finally {
@@ -74,8 +78,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    refreshCart();
-  }, []);
+    const loadCart = async () => {
+      try {
+        setLoading(true);
+        const { data } = await axios.get(`${api.baseURL}/api/cart/${sessionId}`);
+        // API returns {cart, items}, transform to expected structure
+        setCart({
+          ...data.cart,
+          items: data.items || [],
+        });
+      } catch (error) {
+        console.error('Error fetching cart:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCart();
+  }, [sessionId]);
 
   const addToCart = async (productId: number, quantity: number) => {
     try {
