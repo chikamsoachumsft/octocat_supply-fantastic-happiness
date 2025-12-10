@@ -115,4 +115,36 @@ describe('Supplier API', () => {
     const response = await request(app).get('/suppliers/999');
     expect(response.status).toBe(404);
   });
+
+  it('should return 404 when updating non-existing supplier', async () => {
+    const updateData = {
+      name: 'Updated Supplier',
+    };
+    const response = await request(app).put('/suppliers/999').send(updateData);
+    expect(response.status).toBe(404);
+  });
+
+  it('should return 404 when deleting non-existing supplier', async () => {
+    const response = await request(app).delete('/suppliers/999');
+    expect(response.status).toBe(404);
+  });
+
+  it('should get supplier status', async () => {
+    // First create a supplier
+    const newSupplier = {
+      name: 'Status Test Supplier',
+      description: 'Test',
+      contactPerson: 'Test Person',
+      email: 'status@test.com',
+      phone: '555-0000',
+      active: true,
+      verified: true,
+    };
+    const createResponse = await request(app).post('/suppliers').send(newSupplier);
+    const supplierId = createResponse.body.supplierId;
+
+    const response = await request(app).get(`/suppliers/${supplierId}/status`);
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('status');
+  });
 });

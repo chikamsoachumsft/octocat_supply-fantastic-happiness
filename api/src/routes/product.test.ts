@@ -121,4 +121,38 @@ describe('Product API', () => {
     const response = await request(app).get('/products/999');
     expect(response.status).toBe(404);
   });
+
+  it('should return 404 when updating non-existing product', async () => {
+    const updateData = {
+      name: 'Updated Product',
+      price: 99.99,
+    };
+    const response = await request(app).put('/products/999').send(updateData);
+    expect(response.status).toBe(404);
+  });
+
+  it('should return 404 when deleting non-existing product', async () => {
+    const response = await request(app).delete('/products/999');
+    expect(response.status).toBe(404);
+  });
+
+  it('should get product by name', async () => {
+    // First create a product
+    const newProduct = {
+      supplierId: 1,
+      name: 'Unique Product Name',
+      description: 'Test',
+      price: 19.99,
+      sku: 'SKU-UNIQUE',
+      unit: 'piece',
+      imgName: 'unique.jpg',
+    };
+    await request(app).post('/products').send(newProduct);
+
+    const response = await request(app).get('/products/name/Unique Product Name');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBeGreaterThan(0);
+    expect(response.body[0].name).toBe('Unique Product Name');
+  });
 });

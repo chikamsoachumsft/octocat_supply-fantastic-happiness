@@ -109,4 +109,18 @@ describe('Headquarters API', () => {
     const response = await request(app).get('/headquarters/999');
     expect(response.status).toBe(404);
   });
+
+  it('should return 404 when updating non-existing headquarters', async () => {
+    const updateData = {
+      name: 'Updated HQ',
+      address: '123 Test St', // Need address for validator
+    };
+    const response = await request(app).put('/headquarters/999').send(updateData);
+    expect(response.status).toBe(404);
+  });
+
+  it('should return 404 when deleting non-existing headquarters', async () => {
+    const response = await request(app).delete('/headquarters/999');
+    expect(response.status).toBe(404);
+  });
 });
