@@ -156,4 +156,3 @@ describe('Supplier API', () => {
     expect(response.status).toBe(404);
   });
 });
-
