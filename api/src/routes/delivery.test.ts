@@ -111,4 +111,17 @@ describe('Delivery API', () => {
     const response = await request(app).get('/deliveries/999');
     expect(response.status).toBe(404);
   });
+
+  it('should return 404 when updating non-existing delivery', async () => {
+    const updateData = {
+      status: 'delivered',
+    };
+    const response = await request(app).put('/deliveries/999').send(updateData);
+    expect(response.status).toBe(404);
+  });
+
+  it('should return 404 when deleting non-existing delivery', async () => {
+    const response = await request(app).delete('/deliveries/999');
+    expect(response.status).toBe(404);
+  });
 });
