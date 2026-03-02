@@ -1,0 +1,64 @@
+name: Generate Documentation with Copilot
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/workflows/**'
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - 'api/sql/seed/**'
+      - 'api/sql/migrations/**'
+      - '.gitignore'
+      - 'LICENSE'
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitHub Copilot CLI
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+        run: |
+          curl -fsSL https://gh.io/copilot-install | bash
+          echo "Installed Copilot CLI version:"
+          copilot --version
+
+      - name: Count changed API source files
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'api/src/**' | grep -v '\.test\.ts$' | wc -l)
+          echo "source_count=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Changed API source files: $CHANGED"
+
+      - name: Analyze and delegate to Copilot
+        if: steps.changes.outputs.source_count > 0
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+        run: |
+          echo "Analyzing commit ${{ github.sha }}"
+          echo "Loading documentation criteria from prompt..."
+
+          PROMPT=$(cat .github/prompts/analyze-for-docs.prompt.md)
+          PROMPT="${PROMPT//\{COMMIT_SHA\}/${{ github.sha }}}"
+          PROMPT="${PROMPT//\{REPOSITORY\}/${{ github.repository }}}"
+
+          echo "Delegating to GitHub Copilot..."
+          echo "- Copilot will use MCP to examine the commit"
+          echo "- Copilot will decide if documentation is needed"
+          echo "- Copilot will create an issue and assign it to itself if needed"
+          echo ""
+
+          copilot -p "$PROMPT" --enable-all-github-mcp-tools --allow-all-tools
+
+      - name: Skip analysis
+        if: steps.changes.outputs.source_count == 0
+        run: |
+          echo "No API source files changed — skipping documentation analysis."

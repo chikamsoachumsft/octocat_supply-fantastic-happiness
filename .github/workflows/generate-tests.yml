@@ -1,0 +1,66 @@
+name: Generate Tests with Copilot
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/workflows/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - '*.config.js'
+      - '*.config.ts'
+      - 'api/sql/seed/**'
+      - 'api/sql/migrations/**'
+
+jobs:
+  generate-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitHub Copilot CLI
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+        run: |
+          curl -fsSL https://gh.io/copilot-install | bash
+          echo "Installed Copilot CLI version:"
+          copilot --version
+
+      - name: Count changed source files
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'api/src/routes/*.ts' 'api/src/repositories/*.ts' | grep -v '\.test\.ts$' | wc -l)
+          echo "source_count=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Changed source files: $CHANGED"
+
+      - name: Analyze commit and generate test issues with Copilot
+        if: steps.changes.outputs.source_count > 0
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+        run: |
+          echo "Analyzing commit ${{ github.sha }} for test coverage..."
+          echo "Source files changed: ${{ steps.changes.outputs.source_count }}"
+          echo ""
+
+          PROMPT=$(cat .github/prompts/analyze-for-tests.prompt.md)
+          PROMPT="${PROMPT//\{COMMIT_SHA\}/${{ github.sha }}}"
+          PROMPT="${PROMPT//\{REPOSITORY\}/${{ github.repository }}}"
+
+          echo "Delegating to GitHub Copilot..."
+          echo "- Copilot will examine the commit diff"
+          echo "- Copilot will check for corresponding test files"
+          echo "- Copilot will assess if new tests are needed"
+          echo "- Copilot will create a GitHub issue and assign it to itself if recommended"
+          echo ""
+
+          copilot -p "$PROMPT" --enable-all-github-mcp-tools --allow-all-tools --no-ask-user
+
+      - name: Skip analysis
+        if: steps.changes.outputs.source_count == 0
+        run: |
+          echo "No route or repository source files changed — skipping test analysis."
