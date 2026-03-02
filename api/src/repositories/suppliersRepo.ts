@@ -7,6 +7,15 @@ import { Supplier } from '../models/supplier';
 import { handleDatabaseError, NotFoundError } from '../utils/errors';
 import { buildInsertSQL, buildUpdateSQL, objectToCamelCase, mapDatabaseRows, DatabaseRow } from '../utils/sql';
 
+/** Aggregate supplier counts returned by {@link SuppliersRepository.getStats}. */
+export interface SupplierStats {
+  total: number;
+  active: number;
+  inactive: number;
+  verified: number;
+  pendingVerification: number;
+}
+
 export class SuppliersRepository {
   private db: DatabaseConnection;
 
@@ -131,6 +140,40 @@ export class SuppliersRepository {
         [`%${name}%`],
       );
       return mapDatabaseRows<Supplier>(rows);
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
+
+  /**
+   * Returns aggregate statistics for all suppliers.
+   *
+   * @returns Promise resolving to a {@link SupplierStats} object with counts
+   * @throws {DatabaseError} When database query fails
+   *
+   * @example
+   * const repo = await getSuppliersRepository();
+   * const stats = await repo.getStats();
+   * console.log(`Total suppliers: ${stats.total}, Active: ${stats.active}`);
+   */
+  async getStats(): Promise<SupplierStats> {
+    try {
+      const row = await this.db.get<DatabaseRow>(`
+        SELECT
+          COUNT(*)                                           AS total,
+          SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END)      AS active,
+          SUM(CASE WHEN active = 0 THEN 1 ELSE 0 END)      AS inactive,
+          SUM(CASE WHEN verified = 1 THEN 1 ELSE 0 END)    AS verified,
+          SUM(CASE WHEN verified = 0 THEN 1 ELSE 0 END)    AS pending_verification
+        FROM suppliers
+      `);
+      return {
+        total: Number(row?.total ?? 0),
+        active: Number(row?.active ?? 0),
+        inactive: Number(row?.inactive ?? 0),
+        verified: Number(row?.verified ?? 0),
+        pendingVerification: Number(row?.pending_verification ?? 0),
+      };
     } catch (error) {
       handleDatabaseError(error);
     }

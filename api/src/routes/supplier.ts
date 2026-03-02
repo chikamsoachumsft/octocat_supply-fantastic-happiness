@@ -37,6 +37,20 @@
  *             schema:
  *               $ref: '#/components/schemas/Supplier'
  *
+ * /api/suppliers/stats:
+ *   get:
+ *     summary: Get supplier aggregate statistics
+ *     tags: [Suppliers]
+ *     responses:
+ *       200:
+ *         description: Supplier counts broken down by status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SupplierStats'
+ *       500:
+ *         description: Internal server error
+ *
  * /api/suppliers/{id}:
  *   get:
  *     summary: Get a supplier by ID
@@ -148,6 +162,17 @@ router.get('/', async (req, res, next) => {
     const repo = await getSuppliersRepository();
     const suppliers = await repo.findAll();
     res.json(suppliers);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get supplier statistics
+router.get('/stats', async (req, res, next) => {
+  try {
+    const repo = await getSuppliersRepository();
+    const stats = await repo.getStats();
+    res.json(stats);
   } catch (error) {
     next(error);
   }
