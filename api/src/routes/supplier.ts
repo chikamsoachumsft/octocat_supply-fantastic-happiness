@@ -131,6 +131,17 @@ import { handleDatabaseError, NotFoundError } from '../utils/errors';
 
 const router = express.Router();
 
+// Get supplier statistics (must be before /:id to avoid path-shadowing)
+router.get('/stats', async (req, res, next) => {
+  try {
+    const repo = await getSuppliersRepository();
+    const stats = await repo.getStats();
+    res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Create a new supplier
 router.post('/', async (req, res, next) => {
   try {

@@ -113,7 +113,7 @@ describe('SuppliersRepository', () => {
 
             expect(mockDb.run).toHaveBeenCalledWith(
                 'INSERT INTO suppliers (name, description, contact_person, email, phone, active, verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                ['New Supplier', 'New Description', 'Jane Doe', 'jane@test.com', '555-5678', true, false]
+                ['New Supplier', 'New Description', 'Jane Doe', 'jane@test.com', '555-5678', 1, 0]
             );
             expect(result.supplierId).toBe(2);
             expect(result.name).toBe('New Supplier');
@@ -204,6 +204,62 @@ describe('SuppliersRepository', () => {
             );
             expect(result).toHaveLength(1);
             expect(result[0].name).toBe('Test Supplier');
+        });
+    });
+
+    describe('getStats', () => {
+        it('should return correct counts when suppliers exist', async () => {
+            mockDb.get.mockResolvedValue({
+                total: 4,
+                active: 3,
+                inactive: 1,
+                verified: 2,
+                pending_verification: 2,
+            });
+
+            const result = await repository.getStats();
+
+            expect(result).toEqual({
+                total: 4,
+                active: 3,
+                inactive: 1,
+                verified: 2,
+                pendingVerification: 2,
+            });
+        });
+
+        it('should return all zeros when the suppliers table is empty', async () => {
+            mockDb.get.mockResolvedValue({
+                total: 0,
+                active: 0,
+                inactive: 0,
+                verified: 0,
+                pending_verification: 0,
+            });
+
+            const result = await repository.getStats();
+
+            expect(result).toEqual({
+                total: 0,
+                active: 0,
+                inactive: 0,
+                verified: 0,
+                pendingVerification: 0,
+            });
+        });
+
+        it('should correctly map pending_verification column to pendingVerification field', async () => {
+            mockDb.get.mockResolvedValue({
+                total: 1,
+                active: 0,
+                inactive: 1,
+                verified: 0,
+                pending_verification: 1,
+            });
+
+            const result = await repository.getStats();
+
+            expect(result.pendingVerification).toBe(1);
         });
     });
 });
