@@ -131,7 +131,20 @@ import { handleDatabaseError, NotFoundError } from '../utils/errors';
 
 const router = express.Router();
 
-// Create a new supplier
+/**
+ * POST /api/suppliers
+ * Creates a new supplier in the system.
+ * 
+ * @param req.body - Supplier object without supplierId
+ * @returns 201 with created Supplier object
+ * @throws 400 if validation fails
+ * 
+ * @example
+ * // Request:
+ * // POST /api/suppliers
+ * // Body: { "name": "Acme Corp", "contactEmail": "contact@acme.com", "active": true }
+ * // Response: 201 { "supplierId": 123, "name": "Acme Corp", ... }
+ */
 router.post('/', async (req, res, next) => {
   try {
     const repo = await getSuppliersRepository();
@@ -142,7 +155,16 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-// Get all suppliers
+/**
+ * GET /api/suppliers
+ * Retrieves all suppliers in the system.
+ * 
+ * @returns 200 with array of Supplier objects
+ * 
+ * @example
+ * // Request: GET /api/suppliers
+ * // Response: 200 [{ "supplierId": 1, "name": "Supplier A", ... }, ...]
+ */
 router.get('/', async (req, res, next) => {
   try {
     const repo = await getSuppliersRepository();
@@ -153,7 +175,18 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// Get a supplier by ID
+/**
+ * GET /api/suppliers/:id
+ * Retrieves a single supplier by ID.
+ * 
+ * @param req.params.id - Supplier ID
+ * @returns 200 with Supplier object if found
+ * @returns 404 if supplier not found
+ * 
+ * @example
+ * // Request: GET /api/suppliers/123
+ * // Response: 200 { "supplierId": 123, "name": "Acme Corp", ... }
+ */
 router.get('/:id', async (req, res, next) => {
   try {
     const repo = await getSuppliersRepository();
@@ -169,7 +202,20 @@ router.get('/:id', async (req, res, next) => {
 });
 
 
-// Update a supplier by ID
+/**
+ * PUT /api/suppliers/:id
+ * Updates an existing supplier's information.
+ * 
+ * @param req.params.id - Supplier ID
+ * @param req.body - Partial Supplier object with fields to update
+ * @returns 200 with updated Supplier object
+ * @returns 404 if supplier not found
+ * 
+ * @example
+ * // Request: PUT /api/suppliers/123
+ * // Body: { "contactEmail": "newemail@acme.com" }
+ * // Response: 200 { "supplierId": 123, "contactEmail": "newemail@acme.com", ... }
+ */
 router.put('/:id', async (req, res, next) => {
   try {
     const repo = await getSuppliersRepository();
@@ -184,7 +230,18 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-// Delete a supplier by ID
+/**
+ * DELETE /api/suppliers/:id
+ * Permanently deletes a supplier from the system.
+ * 
+ * @param req.params.id - Supplier ID
+ * @returns 204 on successful deletion
+ * @returns 404 if supplier not found
+ * 
+ * @example
+ * // Request: DELETE /api/suppliers/123
+ * // Response: 204 (no content)
+ */
 router.delete('/:id', async (req, res, next) => {
   try {
     const repo = await getSuppliersRepository();
@@ -199,7 +256,18 @@ router.delete('/:id', async (req, res, next) => {
   }
 });
 
-// Get supplier status by ID
+/**
+ * GET /api/suppliers/:id/status
+ * Retrieves the approval status of a supplier.
+ * 
+ * @param req.params.id - Supplier ID
+ * @returns 200 with status object { status: "INACTIVE" | "APPROVED" | "PENDING" }
+ * @returns 404 if supplier not found
+ * 
+ * @example
+ * // Request: GET /api/suppliers/123/status
+ * // Response: 200 { "status": "APPROVED" }
+ */
 router.get('/:id/status', async (req, res, next) => {
   try {
     const repo = await getSuppliersRepository();
@@ -217,7 +285,18 @@ router.get('/:id/status', async (req, res, next) => {
   }
 });
 
-// Misleading indentation example
+/**
+ * Determines the approval status of a supplier based on active and verified flags.
+ * 
+ * @param supplier - Supplier object to evaluate
+ * @returns Status string: "APPROVED", "PENDING", or implicitly "INACTIVE"
+ * 
+ * @example
+ * const status = processSupplierStatus({ active: true, verified: true });
+ * // Returns: "APPROVED"
+ * 
+ * @internal
+ */
 function processSupplierStatus(supplier: Supplier): string {
   if (supplier.active)
     console.log('Supplier is active');
@@ -232,3 +311,5 @@ function processSupplierStatus(supplier: Supplier): string {
 }
 
 export default router;
+
+// workflow trigger test
