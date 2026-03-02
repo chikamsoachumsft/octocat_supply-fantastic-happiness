@@ -176,6 +176,52 @@ router.get('/', async (req, res, next) => {
 });
 
 /**
+ * @swagger
+ * /api/suppliers/stats:
+ *   get:
+ *     summary: Get supplier aggregate statistics
+ *     tags: [Suppliers]
+ *     responses:
+ *       200:
+ *         description: Supplier counts broken down by status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                 active:
+ *                   type: integer
+ *                 inactive:
+ *                   type: integer
+ *                 verified:
+ *                   type: integer
+ *                 pendingVerification:
+ *                   type: integer
+ */
+
+/**
+ * GET /api/suppliers/stats
+ * Returns aggregate counts for suppliers by active/verified status.
+ *
+ * @returns 200 with SupplierStats object
+ *
+ * @example
+ * // Request: GET /api/suppliers/stats
+ * // Response: 200 { "total": 42, "active": 35, "inactive": 7, "verified": 28, "pendingVerification": 14 }
+ */
+router.get('/stats', async (req, res, next) => {
+  try {
+    const repo = await getSuppliersRepository();
+    const stats = await repo.getStats();
+    res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/suppliers/:id
  * Retrieves a single supplier by ID.
  * 
@@ -311,7 +357,3 @@ function processSupplierStatus(supplier: Supplier): string {
 }
 
 export default router;
-
-// workflow trigger test
-
-// test summary issues
