@@ -3,7 +3,7 @@
  */
 
 import { getDatabase, DatabaseConnection } from '../db/sqlite';
-import { Supplier } from '../models/supplier';
+import { Supplier, SupplierStats } from '../models/supplier';
 import { handleDatabaseError, NotFoundError } from '../utils/errors';
 import { buildInsertSQL, buildUpdateSQL, objectToCamelCase, mapDatabaseRows, DatabaseRow } from '../utils/sql';
 
@@ -131,6 +131,38 @@ export class SuppliersRepository {
         [`%${name}%`],
       );
       return mapDatabaseRows<Supplier>(rows);
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
+
+  /**
+   * Get aggregate statistics for all suppliers
+   */
+  async getStats(): Promise<SupplierStats> {
+    try {
+      const row = await this.db.get<{
+        total: number;
+        active: number;
+        inactive: number;
+        verified: number;
+        pending_verification: number;
+      }>(
+        `SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active,
+          SUM(CASE WHEN active = 0 THEN 1 ELSE 0 END) as inactive,
+          SUM(CASE WHEN verified = 1 THEN 1 ELSE 0 END) as verified,
+          SUM(CASE WHEN verified = 0 THEN 1 ELSE 0 END) as pending_verification
+        FROM suppliers`,
+      );
+      return {
+        total: row?.total ?? 0,
+        active: row?.active ?? 0,
+        inactive: row?.inactive ?? 0,
+        verified: row?.verified ?? 0,
+        pendingVerification: row?.pending_verification ?? 0,
+      };
     } catch (error) {
       handleDatabaseError(error);
     }

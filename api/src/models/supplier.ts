@@ -47,3 +47,11 @@ export interface Supplier {
   active: boolean;
   verified: boolean;
 }
+
+export interface SupplierStats {
+  total: number;
+  active: number;
+  inactive: number;
+  verified: number;
+  pendingVerification: number;
+}
