@@ -206,4 +206,46 @@ describe('SuppliersRepository', () => {
             expect(result[0].name).toBe('Test Supplier');
         });
     });
+
+    describe('getStats', () => {
+        it('should return aggregate supplier statistics', async () => {
+            mockDb.get.mockResolvedValue({
+                total: 10,
+                active: 7,
+                inactive: 3,
+                verified: 5,
+                pending_verification: 5
+            });
+
+            const result = await repository.getStats();
+
+            expect(result).toEqual({
+                total: 10,
+                active: 7,
+                inactive: 3,
+                verified: 5,
+                pendingVerification: 5
+            });
+        });
+
+        it('should return zero counts when no suppliers exist', async () => {
+            mockDb.get.mockResolvedValue({
+                total: 0,
+                active: null,
+                inactive: null,
+                verified: null,
+                pending_verification: null
+            });
+
+            const result = await repository.getStats();
+
+            expect(result).toEqual({
+                total: 0,
+                active: 0,
+                inactive: 0,
+                verified: 0,
+                pendingVerification: 0
+            });
+        });
+    });
 });

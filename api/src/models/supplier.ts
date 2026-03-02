@@ -36,6 +36,24 @@
  *         verified:
  *           type: boolean
  *           description: Whether the supplier is verified
+ *     SupplierStats:
+ *       type: object
+ *       properties:
+ *         total:
+ *           type: integer
+ *           description: Total number of suppliers
+ *         active:
+ *           type: integer
+ *           description: Number of active suppliers
+ *         inactive:
+ *           type: integer
+ *           description: Number of inactive suppliers
+ *         verified:
+ *           type: integer
+ *           description: Number of verified suppliers
+ *         pendingVerification:
+ *           type: integer
+ *           description: Number of suppliers pending verification
  */
 export interface Supplier {
   supplierId: number;
