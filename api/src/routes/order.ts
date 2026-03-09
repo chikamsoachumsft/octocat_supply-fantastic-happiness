@@ -101,19 +101,109 @@
 
 import express from 'express';
 import { Order } from '../models/order';
+import { OrderDetail } from '../models/orderDetail';
 import { getOrdersRepository } from '../repositories/ordersRepo';
-import { handleDatabaseError, NotFoundError } from '../utils/errors';
+import { getOrderDetailsRepository } from '../repositories/orderDetailsRepo';
+import { getProductsRepository } from '../repositories/productsRepo';
+import { handleDatabaseError, NotFoundError, ValidationError } from '../utils/errors';
 
 const router = express.Router();
 
-// Create a new order
+const DEFAULT_GUEST_BRANCH_ID = 1; // Default branch for guest orders
+
+// Interface for guest checkout request
+interface GuestCheckoutItem {
+  productId: number;
+  quantity: number;
+}
+
+interface GuestCheckoutRequest {
+  customerName?: string;
+  customerEmail?: string;
+  branchId?: number;
+  items?: GuestCheckoutItem[];
+  // Traditional order fields (for backwards compatibility)
+  orderDate?: string;
+  name?: string;
+  description?: string;
+  status?: string;
+}
+
+// Create a new order (supports both traditional and guest checkout)
 router.post('/', async (req, res, next) => {
   try {
-    const repo = await getOrdersRepository();
-    const newOrder = await repo.create(req.body as Omit<Order, 'orderId'>);
-    res.status(201).json(newOrder);
+    const body = req.body as GuestCheckoutRequest;
+    
+    // Guest checkout flow - if items are provided
+    if (body.items && body.items.length > 0) {
+      const ordersRepo = await getOrdersRepository();
+      const orderDetailsRepo = await getOrderDetailsRepository();
+      const productsRepo = await getProductsRepository();
+
+      // Validate all items have sufficient stock BEFORE creating order
+      for (const item of body.items) {
+        const hasStock = await productsRepo.checkStock(item.productId, item.quantity);
+        if (!hasStock) {
+          const product = await productsRepo.findById(item.productId);
+          throw new ValidationError(
+            `Insufficient stock for product "${product?.name || item.productId}". ` +
+            `Requested: ${item.quantity}, Available: ${product?.stockLevel || 0}`
+          );
+        }
+      }
+
+      // Create the order
+      const orderData: Omit<Order, 'orderId'> = {
+        branchId: body.branchId || DEFAULT_GUEST_BRANCH_ID,
+        orderDate: body.orderDate || new Date().toISOString(),
+        name: body.name || `Order from ${body.customerName || 'Guest'}`,
+        description: body.description || 'Guest checkout order',
+        status: body.status || 'pending',
+        customerName: body.customerName,
+        customerEmail: body.customerEmail,
+      };
+
+      const newOrder = await ordersRepo.create(orderData);
+
+      // Create order details and decrement stock for each item
+      const orderDetails: OrderDetail[] = [];
+      for (const item of body.items) {
+        const product = await productsRepo.findById(item.productId);
+        if (!product) {
+          throw new ValidationError(`Product with ID ${item.productId} not found`);
+        }
+
+        // Create order detail
+        const orderDetail = await orderDetailsRepo.create({
+          orderId: newOrder.orderId,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: product.price,
+          notes: '',
+        });
+        orderDetails.push(orderDetail);
+
+        // Decrement stock
+        await productsRepo.decrementStock(item.productId, item.quantity);
+      }
+
+      // Return order with details
+      res.status(201).json({
+        ...newOrder,
+        items: orderDetails,
+      });
+    } else {
+      // Traditional order creation (backwards compatibility)
+      const repo = await getOrdersRepository();
+      const newOrder = await repo.create(req.body as Omit<Order, 'orderId'>);
+      res.status(201).json(newOrder);
+    }
   } catch (error) {
-    next(error);
+    if (error instanceof ValidationError) {
+      res.status(400).json({ error: error.message });
+    } else {
+      next(error);
+    }
   }
 });
 

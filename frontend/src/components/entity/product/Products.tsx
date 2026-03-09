@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useQuery } from 'react-query';
 import { api } from '../../../api/config';
 import { useTheme } from '../../../context/ThemeContext';
+import { useCart } from '../../../context/CartContext';
 
 interface Product {
   productId: number;
@@ -14,6 +15,7 @@ interface Product {
   unit: string;
   supplierId: number;
   discount?: number;
+  stockLevel: number;
 }
 
 const fetchProducts = async (): Promise<Product[]> => {
@@ -26,8 +28,10 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
   const { data: products, isLoading, error } = useQuery('products', fetchProducts);
   const { darkMode } = useTheme();
+  const { addItem, getItemQuantity } = useCart();
 
   const filteredProducts = products?.filter(
     (product) =>
@@ -52,12 +56,25 @@ export default function Products() {
   const handleAddToCart = (productId: number) => {
     const quantity = quantities[productId] || 0;
     if (quantity > 0) {
-      // TODO: Implement cart functionality
-      alert(`Added ${quantity} items to cart`);
-      setQuantities((prev) => ({
-        ...prev,
-        [productId]: 0,
-      }));
+      const product = products?.find((p) => p.productId === productId);
+      if (product) {
+        addItem(
+          {
+            productId: product.productId,
+            name: product.name,
+            price: product.price,
+            imgName: product.imgName,
+            stockLevel: product.stockLevel,
+          },
+          quantity
+        );
+        setNotification(`Added ${quantity} × ${product.name} to cart`);
+        setTimeout(() => setNotification(null), 3000);
+        setQuantities((prev) => ({
+          ...prev,
+          [productId]: 0,
+        }));
+      }
     }
   };
 
@@ -96,8 +113,27 @@ export default function Products() {
     <div
       className={`min-h-screen ${darkMode ? 'bg-dark' : 'bg-gray-100'} pt-20 pb-16 px-4 transition-colors duration-300`}
     >
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col space-y-6">
+      {/* Success notification */}
+      {notification && (
+        <div className="fixed top-20 right-4 z-50 animate-fade-in">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>{notification}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto">\n        <div className="flex flex-col space-y-6">
           <h1
             className={`text-3xl font-bold ${darkMode ? 'text-light' : 'text-gray-800'} transition-colors duration-300`}
           >
@@ -207,6 +243,17 @@ export default function Products() {
                       )}
                     </div>
 
+                    {/* Stock level display */}
+                    <div className="text-sm">
+                      {product.stockLevel > 0 ? (
+                        <span className={product.stockLevel < 10 ? 'text-orange-500' : 'text-green-600'}>
+                          {product.stockLevel < 10 ? 'Low Stock' : 'In Stock'}: {product.stockLevel} available
+                        </span>
+                      ) : (
+                        <span className="text-red-500">Out of Stock</span>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between">
                       <div
                         className={`flex items-center space-x-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg p-1 transition-colors duration-300`}
@@ -228,7 +275,8 @@ export default function Products() {
                         </span>
                         <button
                           onClick={() => handleQuantityChange(product.productId, 1)}
-                          className={`w-8 h-8 flex items-center justify-center ${darkMode ? 'text-light' : 'text-gray-700'} hover:text-primary transition-colors duration-300`}
+                          disabled={product.stockLevel === 0 || (quantities[product.productId] || 0) >= product.stockLevel}
+                          className={`w-8 h-8 flex items-center justify-center ${darkMode ? 'text-light' : 'text-gray-700'} hover:text-primary transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed`}
                           aria-label={`Increase quantity of ${product.name}`}
                           id={`increase-qty-${product.productId}`}
                         >
@@ -237,11 +285,11 @@ export default function Products() {
                       </div>
                       <button
                         onClick={() => handleAddToCart(product.productId)}
-                        className={`px-4 py-2 rounded-lg transition-colors ${quantities[product.productId]
+                        className={`px-4 py-2 rounded-lg transition-colors ${quantities[product.productId] && product.stockLevel > 0
                           ? 'bg-primary hover:bg-accent text-white'
                           : `${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
                           }`}
-                        disabled={!quantities[product.productId]}
+                        disabled={!quantities[product.productId] || product.stockLevel === 0}
                         aria-label={`Add ${quantities[product.productId] || 0} ${product.name} to cart`}
                         id={`add-to-cart-${product.productId}`}
                       >

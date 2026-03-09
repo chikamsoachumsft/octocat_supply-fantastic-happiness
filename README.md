@@ -68,7 +68,7 @@ Or use the VS Code tasks:
 
 ## 🛠️ MCP Server Setup (Optional)
 
-To showcase extended capabilities:
+To showcase extended capabilities with Model Context Protocol (MCP) servers:
 
 1. Install Docker/Podman for the GitHub MCP server
 2. Use VS Code command palette:
@@ -76,11 +76,23 @@ To showcase extended capabilities:
    - `MCP: List servers` -> `github` -> `Start server`
 3. Configure with a GitHub PAT (required for GitHub MCP server)
 
+**📖 Complete MCP Documentation**: [MCP Integration Guide](./docs/mcp/README.md)
+- [Setup Guide](./docs/mcp/setup.md) - Detailed installation and configuration
+- [Tools Reference](./docs/mcp/tools-reference.md) - Complete catalog of available tools
+- [Usage Examples](./docs/mcp/usage-examples.md) - Practical demos and scenarios
+- [Troubleshooting](./docs/mcp/troubleshooting.md) - Common issues and solutions
+
 ## 📚 Documentation
 
+### Application Documentation
 - [Detailed Architecture](./docs/architecture.md)
+- [Backend Architecture](./docs/backend-architecture.md)
 - [SQLite Integration](./docs/sqlite-integration.md)
+- [Build & Deployment](./docs/build.md)
+
+### Demo & MCP Documentation
 - [Complete Demo Script](./demo/walkthroughs/README.md)
+- [MCP Server Integration Guide](./docs/mcp/README.md)
 
 Database defaults and env vars:
 

@@ -27,6 +27,12 @@
  *           type: number
  *           format: float
  *           description: The total amount of the order
+ *         customerName:
+ *           type: string
+ *           description: Name of the customer (for guest checkout)
+ *         customerEmail:
+ *           type: string
+ *           description: Email of the customer (for guest checkout)
  */
 export interface Order {
   orderId: number;
@@ -35,4 +41,6 @@ export interface Order {
   name: string;
   description: string;
   status: string;
+  customerName?: string;
+  customerEmail?: string;
 }
