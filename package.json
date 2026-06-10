@@ -24,7 +24,7 @@
     "prettify": "prettier --cache --write \"**/*.{ts,tsx}\""
   },
   "devDependencies": {
-    "concurrently": "9.2.1",
+    "concurrently": "10.0.3",
     "prettier": "^3.3.3"
   },
   "prettier": {
