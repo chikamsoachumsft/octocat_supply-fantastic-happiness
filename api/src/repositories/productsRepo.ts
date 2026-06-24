@@ -4,7 +4,7 @@
 
 import { getDatabase, DatabaseConnection } from '../db/sqlite';
 import { Product } from '../models/product';
-import { handleDatabaseError, NotFoundError } from '../utils/errors';
+import { handleDatabaseError, NotFoundError, ValidationError } from '../utils/errors';
 import { buildInsertSQL, buildUpdateSQL, objectToCamelCase, mapDatabaseRows, DatabaseRow } from '../utils/sql';
 
 export class ProductsRepository {
@@ -138,6 +138,55 @@ export class ProductsRepository {
       handleDatabaseError(error);
     }
   }
+
+  /**
+   * Check whether a product has sufficient stock for the requested quantity.
+   * Returns true if stock >= quantity, false if stock < quantity.
+   * Throws NotFoundError if the product does not exist.
+   */
+  async checkStock(productId: number, quantity: number): Promise<boolean> {
+    try {
+      const row = await this.db.get<{ stock_level: number }>(
+        'SELECT stock_level FROM products WHERE product_id = ?',
+        [productId],
+      );
+      if (!row) {
+        throw new NotFoundError('Product', productId);
+      }
+      return (row.stock_level ?? 0) >= quantity;
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
+
+  /**
+   * Decrement a product's stock level by the given quantity.
+   * Throws NotFoundError if the product does not exist.
+   * Throws ValidationError (with the product name) if stock is insufficient.
+   */
+  async decrementStock(productId: number, quantity: number): Promise<void> {
+    try {
+      const row = await this.db.get<{ stock_level: number; name: string }>(
+        'SELECT stock_level, name FROM products WHERE product_id = ?',
+        [productId],
+      );
+      if (!row) {
+        throw new NotFoundError('Product', productId);
+      }
+      const currentStock = row.stock_level ?? 0;
+      if (currentStock < quantity) {
+        throw new ValidationError(
+          `Insufficient stock for product '${row.name}': available ${currentStock}, requested ${quantity}`,
+        );
+      }
+      await this.db.run(
+        'UPDATE products SET stock_level = stock_level - ? WHERE product_id = ?',
+        [quantity, productId],
+      );
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
 }
 
 // Factory function to create repository instance
@@ -152,8 +201,12 @@ export async function createProductsRepository(
 let productsRepo: ProductsRepository | null = null;
 
 export async function getProductsRepository(isTest: boolean = false): Promise<ProductsRepository> {
+  const isTestEnv = isTest || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  if (isTestEnv) {
+    return createProductsRepository(true);
+  }
   if (!productsRepo) {
-    productsRepo = await createProductsRepository(isTest);
+    productsRepo = await createProductsRepository(false);
   }
   return productsRepo;
 }

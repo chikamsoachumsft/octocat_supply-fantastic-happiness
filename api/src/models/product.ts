@@ -43,4 +43,5 @@ export interface Product {
   unit: string;
   imgName: string;
   discount?: number;
+  stockLevel?: number;
 }

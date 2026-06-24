@@ -35,4 +35,6 @@ export interface Order {
   name: string;
   description: string;
   status: string;
+  customerName?: string;
+  customerEmail?: string;
 }
