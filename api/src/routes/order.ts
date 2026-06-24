@@ -102,13 +102,73 @@
 import express from 'express';
 import { Order } from '../models/order';
 import { getOrdersRepository } from '../repositories/ordersRepo';
-import { handleDatabaseError, NotFoundError } from '../utils/errors';
+import { getOrderDetailsRepository } from '../repositories/orderDetailsRepo';
+import { getProductsRepository } from '../repositories/productsRepo';
+import { NotFoundError } from '../utils/errors';
 
 const router = express.Router();
+
+const DEFAULT_GUEST_BRANCH_ID = 1;
 
 // Create a new order
 router.post('/', async (req, res, next) => {
   try {
+    const { items, customerName, customerEmail, branchId, orderDate, name, description, status } =
+      req.body;
+
+    if (items && Array.isArray(items)) {
+      // Guest checkout flow: validate stock, create order + details, decrement stock
+      const resolvedBranchId = branchId ?? DEFAULT_GUEST_BRANCH_ID;
+      const productsRepo = await getProductsRepository();
+
+      // Validate stock for every item before making any writes
+      for (const item of items) {
+        const { productId, quantity } = item;
+        try {
+          const hasStock = await productsRepo.checkStock(productId, quantity);
+          if (!hasStock) {
+            return res.status(400).json({ error: `Insufficient stock for product ${productId}` });
+          }
+        } catch (err) {
+          if (err instanceof NotFoundError) {
+            return res.status(400).json({ error: `Product ${productId} not found` });
+          }
+          throw err;
+        }
+      }
+
+      // Create the order
+      const ordersRepo = await getOrdersRepository();
+      const newOrder = await ordersRepo.create({
+        branchId: resolvedBranchId,
+        orderDate: orderDate ?? new Date().toISOString(),
+        name: name ?? customerName ?? 'Guest Order',
+        description: description ?? '',
+        status: status ?? 'pending',
+        customerName: customerName ?? null,
+        customerEmail: customerEmail ?? null,
+      } as Omit<Order, 'orderId'>);
+
+      // Create order details and decrement stock for each item
+      const orderDetailsRepo = await getOrderDetailsRepository();
+      const orderDetails = [];
+      for (const item of items) {
+        const { productId, quantity, unitPrice = 0, notes = '' } = item;
+        const detail = await orderDetailsRepo.create({
+          orderId: newOrder.orderId,
+          productId,
+          quantity,
+          unitPrice,
+          notes,
+        });
+        orderDetails.push(detail);
+        await productsRepo.decrementStock(productId, quantity);
+      }
+
+      return res.status(201).json({ ...newOrder, orderDetails });
+    }
+
+    // Traditional path (backward compatible)
     const repo = await getOrdersRepository();
     const newOrder = await repo.create(req.body as Omit<Order, 'orderId'>);
     res.status(201).json(newOrder);
