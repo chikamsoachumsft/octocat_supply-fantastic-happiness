@@ -122,6 +122,31 @@
  *                   enum: [INACTIVE, APPROVED, PENDING]
  *       404:
  *         description: Supplier not found
+ *
+ * /api/suppliers/{id}/verify:
+ *   patch:
+ *     summary: Mark a supplier as verified
+ *     tags: [Suppliers]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Supplier ID
+ *     responses:
+ *       200:
+ *         description: Supplier verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Supplier'
+ *       404:
+ *         description: Supplier not found
+ *       422:
+ *         description: Supplier is inactive and cannot be verified
+ *       500:
+ *         description: Internal server error
  */
 
 import express from 'express';
@@ -364,6 +389,13 @@ function processSupplierStatus(supplier: Supplier): string {
  * @returns 200 with updated supplier object
  * @returns 404 if supplier not found
  * @returns 422 if supplier is not active
+ *
+ * @example
+ * // Request: PATCH /api/suppliers/123/verify
+ * // Response: 200 { "supplierId": 123, "name": "Acme Corp", "active": true, "verified": true, ... }
+ *
+ * // If supplier is inactive:
+ * // Response: 422 { "error": "Cannot verify an inactive supplier" }
  */
 router.patch('/:id/verify', async (req, res, next) => {
   try {
