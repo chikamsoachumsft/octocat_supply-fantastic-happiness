@@ -32,6 +32,7 @@ tools:
 safe-outputs:
   create-issue:
     labels: ["testing", "automated", "agentic-workflow"]
+    assignees: ["copilot"]
 
 max-ai-credits: 500
 timeout-minutes: 10

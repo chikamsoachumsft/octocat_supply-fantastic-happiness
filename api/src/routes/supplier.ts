@@ -356,4 +356,32 @@ function processSupplierStatus(supplier: Supplier): string {
 
 }
 
+/**
+ * PATCH /api/suppliers/:id/verify
+ * Marks a supplier as verified. Only active suppliers can be verified.
+ *
+ * @param req.params.id - Supplier ID
+ * @returns 200 with updated supplier object
+ * @returns 404 if supplier not found
+ * @returns 422 if supplier is not active
+ */
+router.patch('/:id/verify', async (req, res, next) => {
+  try {
+    const repo = await getSuppliersRepository();
+    const supplier = await repo.findById(parseInt(req.params.id));
+    if (!supplier) {
+      res.status(404).json({ error: 'Supplier not found' });
+      return;
+    }
+    if (!supplier.active) {
+      res.status(422).json({ error: 'Cannot verify an inactive supplier' });
+      return;
+    }
+    const updated = await repo.update(parseInt(req.params.id), { verified: true });
+    res.json(updated);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
