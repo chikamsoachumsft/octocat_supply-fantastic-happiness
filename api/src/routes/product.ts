@@ -208,7 +208,7 @@ router.get('/search/price-range', async (req, res, next) => {
     }
     const repo = await getProductsRepository();
     const products = await repo.findAll();
-    const filtered = products.filter(p => p.unitPrice >= minPrice && p.unitPrice <= maxPrice);
+    const filtered = products.filter(p => p.price >= minPrice && p.price <= maxPrice);
     res.json(filtered);
   } catch (error) {
     next(error);
