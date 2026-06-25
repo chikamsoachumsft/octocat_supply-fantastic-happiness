@@ -188,4 +188,31 @@ router.delete('/:id', async (req, res, next) => {
   }
 });
 
+// Search products by price range
+router.get('/search/price-range', async (req, res, next) => {
+  try {
+    const { min, max } = req.query;
+    if (!min || !max) {
+      res.status(400).json({ error: 'Both min and max query parameters are required' });
+      return;
+    }
+    const minPrice = parseFloat(min as string);
+    const maxPrice = parseFloat(max as string);
+    if (isNaN(minPrice) || isNaN(maxPrice)) {
+      res.status(400).json({ error: 'min and max must be valid numbers' });
+      return;
+    }
+    if (minPrice > maxPrice) {
+      res.status(422).json({ error: 'min cannot be greater than max' });
+      return;
+    }
+    const repo = await getProductsRepository();
+    const products = await repo.findAll();
+    const filtered = products.filter(p => p.unitPrice >= minPrice && p.unitPrice <= maxPrice);
+    res.json(filtered);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
