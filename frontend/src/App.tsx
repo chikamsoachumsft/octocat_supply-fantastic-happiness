@@ -12,6 +12,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CartProvider } from './context/CartContext';
 import AdminProducts from './components/admin/AdminProducts';
+import { TermsDownload } from './components/TermsDownload';
 import { useTheme } from './context/ThemeContext';
 
 // Wrapper component to apply theme classes
@@ -34,6 +35,7 @@ function ThemedApp() {
             <Route path="/order-success/:orderId" element={<OrderSuccess />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin/products" element={<AdminProducts />} />
+            <Route path="/terms" element={<TermsDownload />} />
           </Routes>
         </main>
         <Footer />
