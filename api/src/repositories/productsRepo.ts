@@ -404,6 +404,21 @@ export async function createProductsRepository(
 // Singleton instance for default usage
 let productsRepo: ProductsRepository | null = null;
 
+/**
+ * Returns the singleton {@link ProductsRepository} instance, creating it if necessary.
+ *
+ * Pass `isTest = true` to connect to the test database instead of the shared
+ * production instance.
+ *
+ * @param isTest - Whether to use the test database. Defaults to `false`.
+ * @returns A Promise resolving to the {@link ProductsRepository} instance.
+ * @example
+ * // Production usage — returns (and caches) the shared instance
+ * const repo = await getProductsRepository();
+ *
+ * // Test usage — returns a fresh instance backed by the test database
+ * const repo = await getProductsRepository(true);
+ */
 export async function getProductsRepository(isTest: boolean = false): Promise<ProductsRepository> {
   if (!productsRepo) {
     productsRepo = await createProductsRepository(isTest);

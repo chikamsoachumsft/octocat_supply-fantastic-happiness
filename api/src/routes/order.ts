@@ -7,6 +7,55 @@
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     GuestCheckoutItem:
+ *       type: object
+ *       required:
+ *         - productId
+ *         - quantity
+ *       properties:
+ *         productId:
+ *           type: integer
+ *           description: The ID of the product to order
+ *         quantity:
+ *           type: integer
+ *           description: The quantity of the product to order
+ *           minimum: 1
+ *     GuestCheckoutRequest:
+ *       type: object
+ *       required:
+ *         - items
+ *       properties:
+ *         items:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/GuestCheckoutItem'
+ *           description: Array of products to include in the order
+ *         customerName:
+ *           type: string
+ *           description: Name of the customer (optional)
+ *         customerEmail:
+ *           type: string
+ *           format: email
+ *           description: Email address of the customer (optional)
+ *         branchId:
+ *           type: integer
+ *           description: The ID of the branch placing the order (optional, defaults to branch 1)
+ *     OrderWithItems:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Order'
+ *         - type: object
+ *           properties:
+ *             items:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/OrderDetail'
+ *               description: Order line items (only present for guest checkout orders)
+ */
+
+/**
+ * @swagger
  * /api/orders:
  *   get:
  *     summary: Returns all orders
@@ -22,20 +71,89 @@
  *                 $ref: '#/components/schemas/Order'
  *   post:
  *     summary: Create a new order
+ *     description: >
+ *       Creates a new order. Supports two request shapes:
+ *       **Guest checkout** (supply `items`) — creates the order, inserts order details, and
+ *       decrements product stock. Returns the created order enriched with an `items` array.
+ *       **Traditional order** (supply `orderDate`, `name`, `description`, `status`) — creates
+ *       a bare order record and returns the `Order` object only.
  *     tags: [Orders]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Order'
+ *             oneOf:
+ *               - $ref: '#/components/schemas/GuestCheckoutRequest'
+ *               - $ref: '#/components/schemas/Order'
+ *           examples:
+ *             guestCheckout:
+ *               summary: Guest checkout with items
+ *               value:
+ *                 items:
+ *                   - productId: 1
+ *                     quantity: 2
+ *                 customerName: Jane Doe
+ *                 customerEmail: jane@example.com
+ *                 branchId: 1
+ *             traditionalOrder:
+ *               summary: Traditional order
+ *               value:
+ *                 branchId: 1
+ *                 orderDate: "2024-01-01T00:00:00Z"
+ *                 name: "Order #1"
+ *                 description: Monthly supplies
+ *                 status: pending
  *     responses:
  *       201:
- *         description: Order created successfully
+ *         description: >
+ *           Order created successfully. Guest checkout responses include an `items` array
+ *           of `OrderDetail` objects. Traditional order responses return a plain `Order`.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Order'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/OrderWithItems'
+ *                 - $ref: '#/components/schemas/Order'
+ *             examples:
+ *               guestCheckoutResponse:
+ *                 summary: Guest checkout response (includes items)
+ *                 value:
+ *                   orderId: 42
+ *                   branchId: 1
+ *                   orderDate: "2024-01-01T00:00:00Z"
+ *                   name: Guest Order
+ *                   description: Guest checkout order
+ *                   status: pending
+ *                   customerName: Jane Doe
+ *                   customerEmail: jane@example.com
+ *                   items:
+ *                     - orderDetailId: 1
+ *                       orderId: 42
+ *                       productId: 1
+ *                       quantity: 2
+ *                       unitPrice: 9.99
+ *               traditionalOrderResponse:
+ *                 summary: Traditional order response
+ *                 value:
+ *                   orderId: 43
+ *                   branchId: 1
+ *                   orderDate: "2024-01-01T00:00:00Z"
+ *                   name: "Order #1"
+ *                   description: Monthly supplies
+ *                   status: pending
+ *       400:
+ *         description: >
+ *           Validation error. Returned when a product is not found or stock is insufficient
+ *           to fulfil the requested quantity.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Insufficient stock for product 1
  *
  * /api/orders/{id}:
  *   get:
